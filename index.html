@@ -17,9 +17,13 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
 h1{font-size:26px;margin:0;letter-spacing:-.01em}
 h2{font-size:18px;margin:0 0 10px}
 .sub{color:var(--mut);font-size:14px}
-.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
-.seg button{background:none;border:0;color:var(--mut);font:inherit;font-weight:650;padding:10px 6px;border-radius:10px;min-height:46px;cursor:pointer}
-.seg button.on{background:var(--ink);color:var(--bg)}
+.modes{display:grid;gap:8px}
+.modes button{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 10px;text-align:left;background:var(--panel);border:1px solid var(--line);color:var(--ink);font:inherit;padding:12px 14px;border-radius:14px;cursor:pointer}
+.modes button::before{content:"";grid-row:1/3;width:18px;height:18px;margin-top:2px;border-radius:50%;border:2px solid var(--mut)}
+.modes button.on{border-color:var(--count);background:#ffb54712}
+.modes button.on::before{border:6px solid var(--count)}
+.modes b{font-size:16px}
+.modes span{font-size:13.5px;color:var(--mut);line-height:1.35}
 .hint{color:var(--mut);font-size:14px;margin:8px 2px 0}
 #stage{position:relative;width:min(80vw,320px);aspect-ratio:1;margin:20px auto 6px}
 #ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
@@ -58,16 +62,19 @@ label.f output{color:var(--mut);font-variant-numeric:tabular-nums;white-space:no
 .bpm b{text-align:center;font-size:32px;font-variant-numeric:tabular-nums;line-height:1}
 .bpm b small{display:block;font-size:12px;color:var(--mut);font-weight:500}
 .chk{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
-.chk input{width:22px;height:22px;accent-color:var(--count)}
+.chk input{width:22px;height:22px;accent-color:var(--count);flex:none}
+.chk.off{opacity:.45}
 .meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;max-width:220px;margin:4px auto 0}
 .meter i{display:block;height:100%;width:0;background:var(--play)}
 .meter.hot i{background:var(--rec)}
+.sel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
 select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;min-height:46px}
 .lab{font-size:15px;margin:16px 0 8px}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;font-size:15px;width:max-content;max-width:90vw;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 #toast.on{opacity:1}
 .empty{color:var(--mut);font-size:15px;margin:0}
 .micst{text-align:center;font-size:13px;color:var(--mut);margin-top:6px}
+[hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){#num.pulse{animation:none}}
 </style>
 </head>
@@ -75,11 +82,11 @@ select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--l
 <main>
 <header><h1>Loopstation</h1><span class="sub" id="tempoTag">90 BPM · 2 battute</span></header>
 
-<div class="seg" id="mode" role="group" aria-label="Ascolto">
-  <button data-v="speaker">Senza cuffie</button>
-  <button data-v="phones">Con cuffie</button>
+<div class="modes" id="mode" role="radiogroup" aria-label="Come registri">
+  <button data-v="cable" role="radio"><b>Cavo o cuffie</b><span>Scheda audio, iRig o cuffie. Qualità piena e loop sempre a volume pieno.</span></button>
+  <button data-v="clean" role="radio"><b>Microfono del telefono · qualità piena</b><span>Suono pulito. Mentre registri il resto si abbassa molto e ti guida un click leggero.</span></button>
+  <button data-v="ec" role="radio"><b>Microfono del telefono · cancella eco</b><span>Senti tutto mentre registri, ma il suono viene più "da telefonata".</span></button>
 </div>
-<p class="hint" id="modeHint"></p>
 
 <div id="stage">
   <svg id="ring" viewBox="0 0 100 100" aria-hidden="true">
@@ -92,7 +99,7 @@ select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--l
 <div id="pos"></div>
 <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
 <div class="meter" id="meter"><i></i></div>
-<div class="micst" id="micst">Microfono spento: si attiva al primo tocco</div>
+<div class="micst" id="micst">Ingresso spento: si attiva al primo tocco</div>
 
 <div class="row" style="margin-top:16px">
   <button class="btn pri grow" id="play">▶ Play</button>
@@ -116,7 +123,7 @@ select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--l
   <div class="lab">Lunghezza di ogni loop</div>
   <div class="chips" id="bars"></div>
   <p class="hint" id="lockHint" hidden>Per cambiare tempo o lunghezza elimina prima i loop.</p>
-  <div class="lab">Batteria (resta accesa mentre registri)</div>
+  <div class="lab">Batteria</div>
   <div class="chips" id="styles"></div>
   <label class="f">Volume batteria <output id="drumVolO"></output><input type="range" id="drumVol" min="0" max="1" step="0.01"></label>
   <label class="chk"><input type="checkbox" id="countIn"> Conteggio di una battuta prima del primo loop</label>
@@ -124,17 +131,35 @@ select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--l
 </section>
 
 <section>
-  <h2>Microfono e audio</h2>
-  <label class="f">Ingresso <select id="dev"><option value="">Predefinito</option></select></label>
-  <label class="f">Guadagno microfono <output id="gainO"></output><input type="range" id="gain" min="0.2" max="4" step="0.05"></label>
+  <h2>Scheda audio e ingressi</h2>
+  <label class="f" for="dev">Ingresso</label>
+  <div class="sel"><select id="dev"><option value="">Microfono del telefono</option></select><button class="btn" id="refresh" aria-label="Cerca di nuovo gli ingressi">↻</button></div>
+  <p class="hint">Collega la scheda audio (iRig, Focusrite, M-Audio…) via USB o con l'adattatore: la Loopstation la trova da sola e passa a "Cavo o cuffie".</p>
+  <div id="chBox" hidden>
+    <div class="lab">Canale della scheda</div>
+    <div class="chips" id="chs">
+      <button data-v="0">Ingresso 1</button><button data-v="1">Ingresso 2</button><button data-v="mix">Entrambi</button>
+    </div>
+  </div>
+  <div id="outBox" hidden>
+    <label class="f" for="out">Uscita</label>
+    <select id="out"><option value="">Predefinita</option></select>
+  </div>
+  <label class="chk" id="monRow"><input type="checkbox" id="monitor"> Ascolta lo strumento mentre suoni</label>
+  <p class="hint" id="monHint"></p>
+  <label class="f">Guadagno ingresso <output id="gainO"></output><input type="range" id="gain" min="0.2" max="6" step="0.05"></label>
+</section>
+
+<section>
+  <h2>Audio e tempo</h2>
   <label class="f">Volume generale <output id="volO"></output><input type="range" id="vol" min="0" max="1" step="0.01"></label>
-  <label class="f">Volume dei loop mentre registri (senza cuffie) <output id="duckO"></output><input type="range" id="duck" min="0.1" max="1" step="0.05"></label>
+  <label class="f" id="duckRow">Volume di loop e batteria mentre registri <output id="duckO"></output><input type="range" id="duck" min="0" max="1" step="0.05"></label>
   <label class="f">Ritardo da compensare <output id="latO"></output><input type="range" id="lat" min="0" max="400" step="1"></label>
   <div class="row" style="margin-top:10px">
     <button class="btn grow" id="cal">Calibra il ritardo</button>
     <button class="btn" id="latAuto">Automatico</button>
   </div>
-  <p class="hint">Se i loop ti sembrano in ritardo o in anticipo sulla batteria, togli le cuffie, alza il volume e premi Calibra: il telefono emette 6 click e misura il ritardo da solo.</p>
+  <p class="hint" id="calHint"></p>
 </section>
 
 <section>
@@ -151,12 +176,12 @@ select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--l
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mod=(a,b)=>((a%b)+b)%b;
-const DEF={bpm:90,bars:2,style:'rock',drumVol:.7,click:false,countIn:true,speaker:true,gain:1,duck:.5,latMs:null,vol:.9,dev:''};
+const DEF={bpm:90,bars:2,style:'rock',drumVol:.7,click:false,countIn:true,mode:'clean',gain:1,duckClean:.1,duckEc:.5,latMs:null,vol:.9,dev:'',out:'',ch:'mix',monitor:false};
 const S={...DEF};
-try{Object.assign(S,JSON.parse(localStorage.getItem('loopstation-v1')||'{}'))}catch(e){}
+try{const o=JSON.parse(localStorage.getItem('loopstation-v1')||'{}');if(o.speaker!==undefined&&!o.mode)o.mode=o.speaker?'ec':'cable';delete o.speaker;Object.assign(S,o)}catch(e){}
+if(!['cable','clean','ec'].includes(S.mode))S.mode='clean';
 const save=()=>{try{localStorage.setItem('loopstation-v1',JSON.stringify(S))}catch(e){}};
 
-// 16 sedicesimi per battuta: x = colpo pieno, o = colpo leggero
 const PAT={
   rock:{k:'x.......x.x.....',s:'....x.......x...',h:'x.x.x.x.x.x.x.x.'},
   pop:{k:'x.....x.x.......',s:'....x.......x...',h:'xoxoxoxoxoxoxoxo'},
@@ -168,14 +193,16 @@ const STYLES=[['off','Spenta'],['rock','Rock'],['pop','Pop'],['disco','Disco'],[
 const BARS=[1,2,4,8];
 const MAXL=6;
 
-let ctx=null,master,loopBus,drumBus,noiseBuf,wlReady;
-let mic=null,micSrc=null,micGain=null,tapNode=null,analyser=null,trackLat=0,sink=null;
+let ctx=null,master,duckBus,loopBus,drumBus,noiseBuf,wlReady;
+let mic=null,micSrc=null,splitter=null,micGain=null,monGain=null,tapNode=null,analyser=null,trackLat=0,chanCount=1,micRaw=false,sink=null,knownIns=null;
 let running=false,T0=0,stepIdx=0,timer=null,wake=null;
 let loops=[],rec=null,nextId=1,busy=false;
 
 const beat=()=>60/S.bpm,bar=()=>240/S.bpm,L=()=>bar()*S.bars,step=()=>15/S.bpm;
+const phone=()=>S.mode!=='cable';
+const duckLevel=()=>S.mode==='clean'?S.duckClean:S.mode==='ec'?S.duckEc:1;
 
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('on'),3200)}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('on'),3400)}
 
 /* ---------- audio di base ---------- */
 const WL=`class Tap extends AudioWorkletProcessor{
@@ -191,11 +218,13 @@ async function ensureCtx(){
     if(!AC){toast('Questo browser non supporta l’audio web');throw new Error('no audio')}
     ctx=new AC({latencyHint:'interactive'});
     master=ctx.createGain();master.gain.value=S.vol;master.connect(ctx.destination);
-    loopBus=ctx.createGain();loopBus.connect(master);
-    drumBus=ctx.createGain();drumBus.gain.value=S.drumVol;drumBus.connect(master);
+    duckBus=ctx.createGain();duckBus.connect(master);
+    loopBus=ctx.createGain();loopBus.connect(duckBus);
+    drumBus=ctx.createGain();drumBus.gain.value=S.drumVol;drumBus.connect(duckBus);
     noiseBuf=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);
     const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
     wlReady=ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WL],{type:'application/javascript'})));
+    if(S.out&&ctx.setSinkId)ctx.setSinkId(S.out).catch(()=>{S.out='';save()});
     requestAnimationFrame(draw);
   }
   if(ctx.state!=='running')ctx.resume().catch(()=>{});
@@ -206,48 +235,85 @@ function kick(c,dst,t,v){const o=c.createOscillator(),g=c.createGain();o.frequen
 function noise(c,dst,t,v,dur,type,f){const s=c.createBufferSource();s.buffer=noiseBuf;const b=c.createBiquadFilter();b.type=type;b.frequency.value=f;const g=c.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(b).connect(g).connect(dst);s.start(t,Math.random()*.5);s.stop(t+dur+.02)}
 function snare(c,dst,t,v){noise(c,dst,t,v*.55,.18,'highpass',1200);const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(190,t);g.gain.setValueAtTime(v*.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);o.connect(g).connect(dst);o.start(t);o.stop(t+.1)}
 function hat(c,dst,t,v,dur){noise(c,dst,t,v*.28,dur,'highpass',7500)}
-function click(c,dst,t,acc){const o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1760:1180;g.gain.setValueAtTime(acc?.6:.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);o.connect(g).connect(dst);o.start(t);o.stop(t+.06)}
+function click(c,dst,t,acc,vol=1){const o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1760:1180;g.gain.setValueAtTime((acc?.6:.4)*vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);o.connect(g).connect(dst);o.start(t);o.stop(t+.06)}
 function drumHit(c,dst,pat,p,t){for(const k in pat){const ch=pat[k][p];if(ch==='.')continue;const v=ch==='x'?1:.5;
   if(k==='k')kick(c,dst,t,v);else if(k==='s')snare(c,dst,t,v);else if(k==='h')hat(c,dst,t,v,.05);else hat(c,dst,t,v,.28)}}
 
-/* ---------- microfono ---------- */
+/* ---------- ingresso (microfono o scheda audio) ---------- */
 function openMic(ec,dev){
-  const a={echoCancellation:ec,noiseSuppression:false,autoGainControl:false,channelCount:1};
+  const a={echoCancellation:ec,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:2}};
   if(dev)a.deviceId={exact:dev};
   return navigator.mediaDevices.getUserMedia({audio:a});
 }
-async function ensureMic(){
+async function ensureMic(raw){
   await ensureCtx();
   if(mic)return true;
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Il microfono funziona solo da una pagina https');return false}
-  try{mic=await openMic(S.speaker,S.dev)}catch(e){
-    if(S.dev){try{mic=await openMic(S.speaker,'');S.dev='';save()}catch(e2){}}
-    if(!mic){toast('Microfono non autorizzato: consentilo nelle impostazioni del browser');uiMic();return false}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('L’ingresso audio funziona solo da una pagina https');return false}
+  const ec=!raw&&S.mode==='ec';
+  try{mic=await openMic(ec,S.dev)}catch(e){
+    if(S.dev){try{mic=await openMic(ec,'');S.dev='';save();toast('Ingresso scelto non trovato: uso il microfono del telefono')}catch(e2){}}
+    if(!mic){toast('Ingresso non autorizzato: consenti il microfono nelle impostazioni del browser');uiMic();return false}
   }
+  micRaw=!ec;
   const tr=mic.getAudioTracks()[0];const st=tr.getSettings?tr.getSettings():{};
   trackLat=typeof st.latency==='number'?st.latency:0;
+  chanCount=st.channelCount||1;
   micSrc=ctx.createMediaStreamSource(mic);
-  micGain=ctx.createGain();micGain.gain.value=S.gain;
+  micGain=ctx.createGain();micGain.channelCount=1;micGain.channelCountMode='explicit';micGain.channelInterpretation='speakers';micGain.gain.value=S.gain;
   analyser=ctx.createAnalyser();analyser.fftSize=1024;
+  monGain=ctx.createGain();monGain.gain.value=monOn()?1:0;
   if(!tapNode){tapNode=new AudioWorkletNode(ctx,'tap');tapNode.port.onmessage=e=>sink&&sink(e.data);const z=ctx.createGain();z.gain.value=0;tapNode.connect(z).connect(ctx.destination)}
-  micSrc.connect(micGain);micGain.connect(tapNode);micGain.connect(analyser);
+  routeInput();
+  micGain.connect(tapNode);micGain.connect(analyser);micGain.connect(monGain);monGain.connect(master);
   tr.onended=()=>{closeMic();uiMic()};
-  listDevices();uiMic();uiLat();
+  await listDevices();uiMic();uiLat();
   return true;
 }
+function routeInput(){
+  if(!micSrc)return;
+  try{micSrc.disconnect()}catch(e){}
+  if(splitter){try{splitter.disconnect()}catch(e){}}
+  if(chanCount>=2&&S.ch!=='mix'){splitter=splitter||ctx.createChannelSplitter(2);micSrc.connect(splitter);splitter.connect(micGain,+S.ch,0)}
+  else micSrc.connect(micGain);
+  $('#chBox').hidden=chanCount<2;
+  $('#chs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===String(S.ch)));
+}
 function closeMic(){
-  if(mic){mic.getTracks().forEach(t=>t.stop());mic=null}
-  try{micSrc&&micSrc.disconnect();micGain&&micGain.disconnect()}catch(e){}
-  micSrc=micGain=analyser=null;
+  if(mic){mic.getTracks().forEach(t=>{t.onended=null;t.stop()});mic=null}
+  for(const n of [micSrc,splitter,micGain,monGain]){try{n&&n.disconnect()}catch(e){}}
+  micSrc=splitter=micGain=monGain=analyser=null;
 }
 async function reopenMic(){if(!mic)return;if(rec)cancelRec();closeMic();await ensureMic()}
+const monOn=()=>S.monitor&&S.mode==='cable';
+
 async function listDevices(){
-  try{
-    const ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput'&&d.deviceId!=='default');
-    $('#dev').innerHTML='<option value="">Predefinito</option>'+ds.map((d,i)=>`<option value="${esc(d.deviceId)}">${esc(d.label||'Ingresso '+(i+1))}</option>`).join('');
-    $('#dev').value=S.dev||'';
-  }catch(e){}
+  let ds;try{ds=await navigator.mediaDevices.enumerateDevices()}catch(e){return}
+  const ins=ds.filter(d=>d.kind==='audioinput'&&d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
+  const ids=ins.map(d=>d.deviceId);
+  if(knownIns&&mic&&!rec){
+    const added=ins.filter(d=>!knownIns.includes(d.deviceId));
+    if(added.length){
+      const d=added[0];knownIns=ids;S.dev=d.deviceId;S.mode='cable';save();uiMode();
+      toast(`Collegato: ${d.label||'nuovo ingresso'} · modalità Cavo o cuffie`);
+      fillInputs(ins);await reopenMic();return;
+    }
+  }
+  knownIns=ids;
+  fillInputs(ins);
+  const outs=ds.filter(d=>d.kind==='audiooutput'&&d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
+  const canOut=ctx&&typeof ctx.setSinkId==='function'&&outs.length>1;
+  $('#outBox').hidden=!canOut;
+  if(canOut){$('#out').innerHTML='<option value="">Predefinita</option>'+outs.map((d,i)=>`<option value="${esc(d.deviceId)}">${esc(d.label||'Uscita '+(i+1))}</option>`).join('');$('#out').value=S.out||''}
 }
+function fillInputs(ins){
+  $('#dev').innerHTML='<option value="">Predefinito (di solito il microfono del telefono)</option>'+ins.map((d,i)=>`<option value="${esc(d.deviceId)}">${esc(d.label||'Ingresso '+(i+1))}</option>`).join('');
+  $('#dev').value=ins.some(d=>d.deviceId===S.dev)?S.dev:'';
+}
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',async()=>{
+  const had=S.dev;await listDevices();
+  if(had&&knownIns&&!knownIns.includes(had)&&S.dev===had){S.dev='';save();toast('Scheda audio scollegata: torno al microfono del telefono');S.mode='clean';save();uiMode();closeMic();uiMic()}
+});
+
 function autoLat(){if(!ctx)return .1;const o=ctx.outputLatency||0;return (ctx.baseLatency||0)+o+(trackLat||0)+(o?0:.05)}
 const latency=()=>S.latMs!=null?S.latMs/1000:autoLat();
 
@@ -278,8 +344,12 @@ function playStep(i,t){
   if(i<0){if(mod(i,4)===0)click(ctx,master,t,i===-16);return}
   const p=i%16,pat=PAT[S.style];
   if(pat)drumHit(ctx,drumBus,pat,p,t);
+  if(p%4)return;
+  const inRec=rec&&t>=rec.start-1e-4&&t<rec.end-1e-4;
   const countBar=rec&&!pat&&!S.click&&t>=rec.start-bar()-1e-4&&t<rec.start-1e-4;
-  if((S.click||countBar)&&p%4===0)click(ctx,master,t,p===0);
+  if(S.click)click(ctx,master,t,p===0,inRec&&S.mode==='clean'?.35:1);
+  else if(countBar)click(ctx,master,t,p===0);
+  else if(inRec&&S.mode==='clean')click(ctx,master,t,p===0,.35);
 }
 function startSrc(l,when){
   stopSrc(l);
@@ -301,10 +371,11 @@ async function onRecord(){
   rec={start,end:start+L(),lat:latency(),chunks:[],n:loops.length+1};
   const r=rec;sink=d=>r.chunks.push(d);
   tapNode.port.postMessage(true);
-  if(S.speaker&&loops.length){const g=loopBus.gain;g.cancelScheduledValues(0);g.setValueAtTime(g.value,ctx.currentTime);g.setTargetAtTime(S.duck,start-.06,.02);g.setTargetAtTime(1,rec.end,.05)}
+  const lv=duckLevel();
+  if(lv<1){const g=duckBus.gain;g.cancelScheduledValues(0);g.setValueAtTime(g.value,ctx.currentTime);g.setTargetAtTime(lv,start-.06,.02);g.setTargetAtTime(1,rec.end,.05)}
   ui();
 }
-function resetDuck(){const g=loopBus.gain;g.cancelScheduledValues(0);g.setTargetAtTime(1,ctx.currentTime,.03)}
+function resetDuck(){const g=duckBus.gain;g.cancelScheduledValues(0);g.setTargetAtTime(1,ctx.currentTime,.03)}
 function cancelRec(silent){
   if(!rec)return;
   rec=null;sink=null;tapNode&&tapNode.port.postMessage(false);resetDuck();
@@ -325,7 +396,8 @@ function finishRec(){
   const l={id:nextId++,buf,muted:false,vol:1,gain:ctx.createGain(),src:null};
   l.gain.connect(loopBus);loops.push(l);
   if(running)startSrc(l,ctx.currentTime+.03);
-  if(peak<.01)toast('Il loop è quasi muto: avvicinati al telefono o alza il guadagno');
+  if(peak<.01)toast('Il loop è quasi muto: controlla l’ingresso o alza il guadagno');
+  else if(peak>.99)toast('Il loop distorce: abbassa il guadagno');
   renderLoops();ui();
 }
 
@@ -333,27 +405,29 @@ function finishRec(){
 async function calibrate(){
   if(rec){toast('Aspetta che finisca la registrazione');return}
   try{await ensureCtx()}catch(e){return}
-  const btn=$('#cal');btn.disabled=true;btn.textContent='Ascolto i click…';
+  const btn=$('#cal'),reset=()=>{btn.disabled=false;btn.textContent='Calibra il ritardo'};
+  btn.disabled=true;btn.textContent=S.mode==='cable'?'Suona sui click…':'Ascolto i click…';
   const wasRunning=running;if(running)stopTransport();
   const hadMic=!!mic;closeMic();
-  let st;
-  try{st=await openMic(false,S.dev)}catch(e){toast('Serve il permesso del microfono');btn.disabled=false;btn.textContent='Calibra il ritardo';return}
-  const src=ctx.createMediaStreamSource(st),node=new AudioWorkletNode(ctx,'tap'),z=ctx.createGain();z.gain.value=0;
-  src.connect(node);node.connect(z).connect(ctx.destination);
-  const chunks=[];node.port.onmessage=e=>chunks.push(e.data);node.port.postMessage(true);
-  const sr=ctx.sampleRate,n=6,gap=.6,t0=ctx.currentTime+.7;
-  for(let i=0;i<n;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.type='square';o.frequency.value=1500;g.gain.setValueAtTime(.9,t0+i*gap);g.gain.exponentialRampToValueAtTime(.001,t0+i*gap+.03);o.connect(g).connect(ctx.destination);o.start(t0+i*gap);o.stop(t0+i*gap+.04)}
-  await new Promise(r=>setTimeout(r,(t0-ctx.currentTime+n*gap+.4)*1000));
-  node.port.postMessage(false);await new Promise(r=>setTimeout(r,200));
-  st.getTracks().forEach(t=>t.stop());src.disconnect();node.disconnect();
-  const fs=Math.round((t0-.4)*sr),tot=Math.round((n*gap+.8)*sr),a=new Float32Array(tot);
+  if(!await ensureMic(true)){reset();return}
+  const chunks=[];sink=d=>chunks.push(d);tapNode.port.postMessage(true);
+  const sr=ctx.sampleRate,n=8,gap=.75,t0=ctx.currentTime+.9;
+  for(let i=0;i<n;i++){const t=t0+i*gap,o=ctx.createOscillator(),g=ctx.createGain();o.type='square';o.frequency.value=i%4?1300:1700;g.gain.setValueAtTime(.8,t);g.gain.exponentialRampToValueAtTime(.001,t+.03);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.04)}
+  await new Promise(r=>setTimeout(r,(t0-ctx.currentTime+n*gap+.5)*1000));
+  tapNode.port.postMessage(false);await new Promise(r=>setTimeout(r,200));sink=null;
+  const fs=Math.round((t0-.5)*sr),tot=Math.round((n*gap+1)*sr),a=new Float32Array(tot);
   for(const c of chunks)for(let j=0;j<c.d.length;j++){const k=c.f+j-fs;if(k>=0&&k<tot)a[k]=c.d[j]}
-  let nf=0;for(let i=0;i<.3*sr;i++)nf=Math.max(nf,Math.abs(a[i]));
-  const thr=Math.max(.03,nf*3),ds=[];
-  for(let i=0;i<n;i++){const e=Math.round((t0+i*gap)*sr)-fs;for(let j=e;j<Math.min(tot,e+.5*sr);j++)if(Math.abs(a[j])>thr){ds.push((j-e)/sr);break}}
-  btn.disabled=false;btn.textContent='Calibra il ritardo';
-  if(ds.length<3){toast('Non ho sentito i click: togli le cuffie, alza il volume e riprova')}
-  else{ds.sort((x,y)=>x-y);S.latMs=Math.round(ds[ds.length>>1]*1000);save();toast(`Ritardo misurato: ${S.latMs} ms`)}
+  const H=128,nf=Math.floor(tot/H),e=new Float32Array(nf);
+  for(let k=0;k<nf;k++){let s=0;for(let j=0;j<H;j++){const v=a[k*H+j];s+=v*v}e[k]=Math.sqrt(s/H)}
+  let floor=0;for(let k=0;k<Math.floor(.3*sr/H);k++)floor=Math.max(floor,e[k]);
+  const thr=Math.max(.01,floor*2.5),ds=[];
+  for(let i=0;i<n;i++){
+    const c=(Math.round((t0+i*gap)*sr)-fs)/H,from=Math.max(8,Math.floor(c-.12*sr/H)),to=Math.min(nf,Math.floor(c+.5*sr/H));
+    for(let k=from;k<to;k++){let avg=0;for(let j=k-8;j<k;j++)avg+=e[j];avg/=8;if(e[k]>thr&&e[k]>avg*3+1e-4){ds.push((k-c)*H/sr);break}}
+  }
+  reset();closeMic();
+  if(ds.length<4){toast(S.mode==='cable'?'Non ho sentito abbastanza note: suona una nota secca su ogni click e riprova':'Non ho sentito i click: togli le cuffie, alza il volume e riprova')}
+  else{ds.sort((x,y)=>x-y);S.latMs=Math.max(0,Math.round(ds[ds.length>>1]*1000));save();toast(`Ritardo misurato: ${S.latMs} ms`)}
   uiLat();
   if(hadMic)await ensureMic();
   if(wasRunning&&loops.length)startTransport(false);
@@ -432,13 +506,26 @@ function ui(){
   $('#bpmVal').innerHTML=`${S.bpm}<small>BPM</small>`;
   $('#tempoTag').textContent=`${S.bpm} BPM · ${S.bars} ${S.bars>1?'battute':'battuta'}`;
 }
-function uiMic(){$('#micst').textContent=mic?(S.speaker?'Microfono attivo · cancellazione eco accesa':'Microfono attivo · audio pulito (cuffie)'):'Microfono spento: si attiva al primo tocco';if(!mic)$('#meter i').style.width='0'}
+function uiMic(){
+  const name=mic?(mic.getAudioTracks()[0].label||'ingresso'):'';
+  const how={cable:'qualità piena',clean:'qualità piena, resto abbassato mentre registri',ec:'cancellazione eco accesa'}[S.mode];
+  $('#micst').textContent=mic?`${name} · ${how}`:'Ingresso spento: si attiva al primo tocco';
+  if(!mic)$('#meter i').style.width='0';
+}
 function uiLat(){const v=S.latMs!=null?S.latMs:Math.round(autoLat()*1000);$('#lat').value=v;$('#latO').textContent=`${v} ms${S.latMs==null?' (automatico)':''}`}
 function uiMode(){
-  $('#mode').querySelectorAll('button').forEach(b=>b.classList.toggle('on',(b.dataset.v==='speaker')===S.speaker));
-  $('#modeHint').textContent=S.speaker
-    ?'Il telefono cancella l’eco dei loop e della batteria e li abbassa mentre registri. Tieni il volume medio: più è alto, più rientra. Con le cuffie il suono è più pulito.'
-    :'Audio pulito al 100%. Meglio cuffie con il filo: il Bluetooth aggiunge ritardo.';
+  $('#mode').querySelectorAll('button').forEach(b=>{const on=b.dataset.v===S.mode;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
+  $('#duckRow').hidden=!phone();
+  const dv=S.mode==='clean'?S.duckClean:S.duckEc;$('#duck').value=dv;$('#duckO').textContent=Math.round(dv*100)+'%';
+  const cable=S.mode==='cable';
+  $('#monitor').checked=S.monitor;$('#monitor').disabled=!cable;$('#monRow').classList.toggle('off',!cable);
+  $('#monHint').textContent=cable
+    ?'Accendilo se colleghi lo strumento alla scheda e non lo senti. Se la scheda ha già l’ascolto diretto, lascialo spento.'
+    :'Disponibile solo in "Cavo o cuffie": con il microfono del telefono creerebbe fischi.';
+  if(monGain)monGain.gain.setTargetAtTime(monOn()?1:0,ctx.currentTime,.02);
+  $('#calHint').textContent=cable
+    ?'Se i loop ti sembrano fuori tempo: premi Calibra e suona una nota secca (o batti sulle corde) insieme a ognuno degli 8 click.'
+    :'Se i loop ti sembrano fuori tempo: togli le cuffie, alza il volume e premi Calibra. Il telefono suona 8 click e misura il ritardo da solo.';
 }
 function uiControls(){
   $('#bars').innerHTML=BARS.map(b=>`<button data-v="${b}" class="${b===S.bars?'on':''}">${b} ${b>1?'battute':'battuta'}</button>`).join('');
@@ -446,10 +533,9 @@ function uiControls(){
   $('#drumVol').value=S.drumVol;$('#drumVolO').textContent=Math.round(S.drumVol*100)+'%';
   $('#gain').value=S.gain;$('#gainO').textContent='×'+(+S.gain).toFixed(2);
   $('#vol').value=S.vol;$('#volO').textContent=Math.round(S.vol*100)+'%';
-  $('#duck').value=S.duck;$('#duckO').textContent=Math.round(S.duck*100)+'%';
   $('#countIn').checked=S.countIn;$('#click').checked=S.click;
   $('#repsO').textContent=$('#reps').value+'×';
-  drawTicks();uiLat();ui();
+  drawTicks();uiLat();uiMode();ui();
 }
 function setBpm(v){
   v=Math.max(40,Math.min(220,Math.round(v)));if(v===S.bpm)return;
@@ -468,8 +554,9 @@ $('#loops').addEventListener('click',e=>{const t=e.target.closest('[data-a]');if
   if(t.dataset.a==='mute')toggleMute(i);else if(t.dataset.a==='del')removeLoop(i)});
 $('#loops').addEventListener('input',e=>{if(e.target.dataset.a!=='vol')return;const l=loops[+e.target.closest('.loop').dataset.i];
   l.vol=+e.target.value;if(!l.muted)l.gain.gain.setTargetAtTime(l.vol,ctx.currentTime,.02)});
-$('#mode').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const sp=b.dataset.v==='speaker';if(sp===S.speaker)return;
-  S.speaker=sp;save();uiMode();uiMic();await reopenMic();uiMic()});
+$('#mode').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.dataset.v===S.mode)return;
+  const needReopen=(b.dataset.v==='ec')!==(S.mode==='ec');
+  S.mode=b.dataset.v;save();uiMode();uiMic();if(needReopen)await reopenMic();uiMic()});
 $('#bpmDown').addEventListener('click',()=>setBpm(S.bpm-1));
 $('#bpmUp').addEventListener('click',()=>setBpm(S.bpm+1));
 let taps=[];
@@ -482,20 +569,25 @@ $('#styles').addEventListener('click',async e=>{const b=e.target.closest('button
 $('#drumVol').addEventListener('input',e=>{S.drumVol=+e.target.value;drumBus&&drumBus.gain.setTargetAtTime(S.drumVol,ctx.currentTime,.02);$('#drumVolO').textContent=Math.round(S.drumVol*100)+'%';save()});
 $('#gain').addEventListener('input',e=>{S.gain=+e.target.value;micGain&&micGain.gain.setTargetAtTime(S.gain,ctx.currentTime,.02);$('#gainO').textContent='×'+S.gain.toFixed(2);save()});
 $('#vol').addEventListener('input',e=>{S.vol=+e.target.value;master&&master.gain.setTargetAtTime(S.vol,ctx.currentTime,.02);$('#volO').textContent=Math.round(S.vol*100)+'%';save()});
-$('#duck').addEventListener('input',e=>{S.duck=+e.target.value;$('#duckO').textContent=Math.round(S.duck*100)+'%';save()});
+$('#duck').addEventListener('input',e=>{const v=+e.target.value;if(S.mode==='clean')S.duckClean=v;else S.duckEc=v;$('#duckO').textContent=Math.round(v*100)+'%';save()});
 $('#lat').addEventListener('input',e=>{S.latMs=+e.target.value;save();uiLat()});
 $('#latAuto').addEventListener('click',()=>{S.latMs=null;save();uiLat();toast('Ritardo impostato in automatico')});
 $('#cal').addEventListener('click',calibrate);
 $('#countIn').addEventListener('change',e=>{S.countIn=e.target.checked;save()});
 $('#click').addEventListener('change',e=>{S.click=e.target.checked;save()});
-$('#dev').addEventListener('change',async e=>{S.dev=e.target.value;save();await reopenMic()});
+$('#monitor').addEventListener('change',e=>{S.monitor=e.target.checked;save();uiMode()});
+$('#dev').addEventListener('change',async e=>{S.dev=e.target.value;if(S.dev&&S.mode!=='cable'){S.mode='cable';uiMode();toast('Modalità Cavo o cuffie')}save();
+  if(mic)await reopenMic();else await ensureMic()});
+$('#refresh').addEventListener('click',async()=>{if(!mic){await ensureMic()}else await listDevices();toast('Ingressi aggiornati')});
+$('#chs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.ch=b.dataset.v;save();routeInput()});
+$('#out').addEventListener('change',e=>{S.out=e.target.value;save();if(ctx&&ctx.setSinkId)ctx.setSinkId(S.out).catch(()=>toast('Non riesco a usare questa uscita'))});
 $('#reps').addEventListener('input',e=>$('#repsO').textContent=e.target.value+'×');
 $('#export').addEventListener('click',()=>exportWav().catch(()=>toast('Esportazione non riuscita')));
 document.addEventListener('keydown',e=>{if(e.target.matches('input,select'))return;
   if(e.code==='Space'){e.preventDefault();onRecord()}else if(/^[1-6]$/.test(e.key))toggleMute(+e.key-1)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&running&&navigator.wakeLock&&!wake)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{})});
 
-uiMode();uiControls();renderLoops();uiMic();
+uiControls();renderLoops();uiMic();
 }
 </script>
 </body>
